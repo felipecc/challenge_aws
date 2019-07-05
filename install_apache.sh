@@ -1,7 +1,5 @@
 #!/bin/bash
-yum update -y
-yum install httpd -y
-service httpd start
-chkconfig httpd on
-cd /var/www/html
-echo "<html><h1>Servidor02</h1></html>" > index.html
+apt -y update
+apt-get -y install tomcat9
+service tomcat9 start
+iptables -t nat -A OUTPUT -o lo -p tcp --dport 80 -j REDIRECT --to-port 8080

@@ -1,7 +1,4 @@
 #!/bin/bash
-yum update -y
-yum install httpd -y
-service httpd start
-chkconfig httpd on
-cd /var/www/html
-echo "<html><h1>Servidor01</h1></html>" > index.html
+apt -y update
+apt-get -y install nginx
+ufw allow 'Nginx HTTP'

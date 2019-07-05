@@ -102,7 +102,7 @@ resource "aws_alb_target_group" "alb_target_group" {
 resource "aws_alb_target_group_attachment" "alb_target_srv_nginx" {
   target_group_arn = "${aws_alb_target_group.alb_target_group.arn}"
   target_id        = "${aws_instance.srv_nginx.id}"
-  port             = 8080
+  port             = 80
 }
 
 resource "aws_alb_target_group_attachment" "alb_target_srv_tomcat" {
@@ -125,7 +125,7 @@ resource "aws_alb_listener" "alb_listener" {
 
 
 resource "aws_instance" "srv_nginx" {
-  ami                    = "ami-0b898040803850657"
+  ami                    = "ami-026c8acd92718196b"
   instance_type          = "t2.micro"
   vpc_security_group_ids = ["${aws_security_group.sg_instance.id}"]
   user_data              = "${file("install_nginx.sh")}"
@@ -135,7 +135,7 @@ resource "aws_instance" "srv_nginx" {
 }
 
 resource "aws_instance" "srv_tomcat" {
-  ami                    = "ami-0b898040803850657"
+  ami                    = "ami-026c8acd92718196b"
   instance_type          = "t2.micro"
   vpc_security_group_ids = ["${aws_security_group.sg_instance.id}"]
   
