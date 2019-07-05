@@ -50,6 +50,21 @@ resource "aws_security_group" "sg_instance" {
     }
 
     ingress {
+        from_port   = 8080
+        to_port     = 8080
+        protocol    = "tcp"
+        cidr_blocks = ["0.0.0.0/0"]
+    }
+
+    ingress {
+        from_port   = 22
+        to_port     = 22
+        protocol    = "tcp"
+        cidr_blocks = ["0.0.0.0/0"]
+    }
+
+
+    ingress {
         from_port   = 32768
         to_port     = 61000
         protocol    = "tcp"
@@ -112,7 +127,7 @@ resource "aws_alb_target_group_attachment" "alb_target_srv_tomcat" {
 }
 
 
-resource "aws_alb_listener" "alb_listener" {
+resource "aws_alb_listener" "alb_listener_80" {
   load_balancer_arn = "${aws_alb.alb_default.arn}"
   port              = 80
   protocol          = "HTTP"
@@ -122,6 +137,7 @@ resource "aws_alb_listener" "alb_listener" {
     type             = "forward"
   }
 }
+
 
 
 resource "aws_instance" "srv_nginx" {
