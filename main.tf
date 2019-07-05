@@ -3,10 +3,7 @@ provider "aws" {
   region  = "${var.region}"
 }
 
-
-
-data "aws_availability_zones" "available" {}
-
+#Network
 resource "aws_default_vpc" "default" {
   tags = {
     Name = "Default VPC"
@@ -19,7 +16,7 @@ data "aws_subnet_ids" "all" {
 
 
 
-#Segurança
+#Security
 resource "aws_security_group" "default_ca" {
     name    = "default_ca"
     vpc_id  = "${aws_default_vpc.default.id}"
@@ -86,8 +83,7 @@ resource "aws_security_group" "sg_instance" {
 }
 
 
-#Alb
-
+#ALB
 resource "aws_alb" "alb_default" {
   name      = "alb-default"
   internal  =  false
@@ -138,10 +134,16 @@ resource "aws_alb_listener" "alb_listener_80" {
   }
 }
 
-
+#AMI/Instances
+resource "aws_ami_copy" "ami_ubuntu" {
+  name              = "ami_ubuntu"
+  description       = "A copy of ami-026c8acd92718196b"
+  source_ami_id     = "ami-026c8acd92718196b"
+  source_ami_region = "us-east-1"
+}
 
 resource "aws_instance" "srv_nginx" {
-  ami                    = "ami-026c8acd92718196b"
+  ami                    = "${aws_ami_copy.ami_ubuntu.id}"
   instance_type          = "t2.micro"
   vpc_security_group_ids = ["${aws_security_group.sg_instance.id}"]
   user_data              = "${file("install_nginx.sh")}"
@@ -151,7 +153,7 @@ resource "aws_instance" "srv_nginx" {
 }
 
 resource "aws_instance" "srv_tomcat" {
-  ami                    = "ami-026c8acd92718196b"
+  ami                    = "${aws_ami_copy.ami_ubuntu.id}"
   instance_type          = "t2.micro"
   vpc_security_group_ids = ["${aws_security_group.sg_instance.id}"]
   
