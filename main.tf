@@ -4,22 +4,88 @@ provider "aws" {
 }
 
 #Network
-resource "aws_default_vpc" "default" {
+
+resource "aws_vpc" "main" {
+  cidr_block       = "${var.cidr_block}"
+  
+  tags = {
+    Name = "VPC Principal"
+  }
+}
+
+resource "aws_internet_gateway" "gw" {
+  vpc_id = "${aws_vpc.main.id}"
+
+  tags = {
+    Name = "Gw Default"
+  }
+}
+
+resource "aws_subnet" "public_a" {
+  vpc_id     = "${aws_vpc.main.id}"
+  cidr_block = "192.168.1.0/24"
+  availability_zone = "${var.region}a"
+
+  tags = {
+    Name = "Public 1a"
+  }
+}
+
+resource "aws_subnet" "public_b" {
+  vpc_id     = "${aws_vpc.main.id}"
+  cidr_block = "192.168.2.0/24"
+  availability_zone = "${var.region}b"
+
+  tags = {
+    Name = "Public 1b"
+  }
+}
+
+
+resource "aws_route_table" "public" {
+  vpc_id = "${aws_vpc.main.id}"
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = "${aws_internet_gateway.gw.id}"
+  }
+
+  
+  tags = {
+    Name = "Route Public"
+  }
+}
+
+resource "aws_route_table_association" "public_a" {
+  subnet_id      = "${aws_subnet.public_a.id}"
+  route_table_id = "${aws_route_table.public.id}"
+}
+
+resource "aws_route_table_association" "public_b" {
+  subnet_id      = "${aws_subnet.public_b.id}"
+  route_table_id = "${aws_route_table.public.id}"
+}
+
+
+
+/* resource "aws_default_vpc" "default" {
   tags = {
     Name = "Default VPC"
   }
 }
+ */
 
-data "aws_subnet_ids" "all" {
-  vpc_id = "${aws_default_vpc.default.id}"
+
+/* data "aws_subnet_ids" "all" {
+  vpc_id = "${aws_vpc.main.id}"
 }
-
+ */
 
 
 #Security
 resource "aws_security_group" "default_ca" {
     name    = "default_ca"
-    vpc_id  = "${aws_default_vpc.default.id}"
+    vpc_id  = "${aws_vpc.main.id}"
     ingress {
         from_port   = 80
         to_port     = 80
@@ -35,9 +101,9 @@ resource "aws_security_group" "default_ca" {
     }  
 }
 
-resource "aws_security_group" "sg_instance" {
-    name    = "sg_instance"
-    vpc_id  = "${aws_default_vpc.default.id}"
+resource "aws_security_group" "web" {
+    name    = "web"
+    vpc_id  = "${aws_vpc.main.id}"
     
     ingress {
         from_port   = 80
@@ -46,40 +112,20 @@ resource "aws_security_group" "sg_instance" {
         cidr_blocks = ["0.0.0.0/0"]
     }
 
+
     ingress {
-        from_port   = 8080
-        to_port     = 8080
+        from_port   = 443
+        to_port     = 443
         protocol    = "tcp"
         cidr_blocks = ["0.0.0.0/0"]
     }
 
-    ingress {
-        from_port   = 22
-        to_port     = 22
-        protocol    = "tcp"
-        cidr_blocks = ["0.0.0.0/0"]
-    }
-
-
-    ingress {
-        from_port   = 32768
-        to_port     = 61000
-        protocol    = "tcp"
-        cidr_blocks = ["0.0.0.0/0"]
-
-        security_groups = [
-          "${aws_security_group.default_ca.id}",
-        ]
-
-    }
-
-    egress {
+     egress {
         from_port   = 0
         to_port     = 0
         protocol    = "-1"
         cidr_blocks = ["0.0.0.0/0"]
     }  
-
 }
 
 
@@ -87,15 +133,15 @@ resource "aws_security_group" "sg_instance" {
 resource "aws_alb" "alb_default" {
   name      = "alb-default"
   internal  =  false
-  subnets = ["${data.aws_subnet_ids.all.ids}"]
-  security_groups    = ["${aws_security_group.default_ca.id}"]
+  subnets = ["${aws_subnet.public_a.id}", "${aws_subnet.public_b.id}"]
+  security_groups    = ["${aws_security_group.web.id}"]
  
 }
 
 resource "aws_alb_target_group" "alb_target_group" {
   protocol    = "HTTP"
   port        = 80
-  vpc_id      = "${aws_default_vpc.default.id}"
+  vpc_id      = "${aws_vpc.main.id}"
   target_type = "instance"
 
   health_check {    
@@ -145,7 +191,8 @@ resource "aws_ami_copy" "ami_ubuntu" {
 resource "aws_instance" "srv_nginx" {
   ami                    = "${aws_ami_copy.ami_ubuntu.id}"
   instance_type          = "t2.micro"
-  vpc_security_group_ids = ["${aws_security_group.sg_instance.id}"]
+  vpc_security_group_ids = ["${aws_security_group.web.id}"]
+  subnet_id              = "${aws_subnet.public_a.id}"
   user_data              = "${file("install_nginx.sh")}"
   tags = {
       Name = "srv-nginx"
@@ -155,7 +202,8 @@ resource "aws_instance" "srv_nginx" {
 resource "aws_instance" "srv_tomcat" {
   ami                    = "${aws_ami_copy.ami_ubuntu.id}"
   instance_type          = "t2.micro"
-  vpc_security_group_ids = ["${aws_security_group.sg_instance.id}"]
+  subnet_id              = "${aws_subnet.public_b.id}"
+  vpc_security_group_ids = ["${aws_security_group.web.id}"]
   
   user_data              = "${file("install_apache.sh")}"
   tags = {
