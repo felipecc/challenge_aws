@@ -205,7 +205,13 @@ resource "aws_instance" "srv_tomcat" {
 }
 
 
-
-
-
+#module
+terraform {
+  backend "s3" {
+    bucket         = "com.challengetiendanube.dev.terraform"
+    key            = "terraform.tfstate"
+    region         = "us-east-1"
+    dynamodb_table = "terraform_dev"
+  }
+}
 
