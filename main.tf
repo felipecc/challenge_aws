@@ -23,7 +23,8 @@ resource "aws_internet_gateway" "gw" {
 
 resource "aws_subnet" "public_a" {
   vpc_id     = "${aws_vpc.main.id}"
-  cidr_block = "192.168.1.0/24"
+  cidr_block = "10.10.1.0/24"
+  
   availability_zone = "${var.region}a"
 
   tags = {
@@ -33,7 +34,7 @@ resource "aws_subnet" "public_a" {
 
 resource "aws_subnet" "public_b" {
   vpc_id     = "${aws_vpc.main.id}"
-  cidr_block = "192.168.2.0/24"
+  cidr_block = "10.10.2.0/24"
   availability_zone = "${var.region}b"
 
   tags = {
@@ -67,31 +68,17 @@ resource "aws_route_table_association" "public_b" {
 }
 
 
-
-/* resource "aws_default_vpc" "default" {
-  tags = {
-    Name = "Default VPC"
-  }
-}
- */
-
-
-/* data "aws_subnet_ids" "all" {
-  vpc_id = "${aws_vpc.main.id}"
-}
- */
-
-
 #Security
-resource "aws_security_group" "default_ca" {
-    name    = "default_ca"
+resource "aws_security_group" "instance_sg" {
+    name    = "instance_sg"
     vpc_id  = "${aws_vpc.main.id}"
     ingress {
         from_port   = 80
         to_port     = 80
         protocol    = "tcp"
-        cidr_blocks = ["0.0.0.0/0"]
+        security_groups = ["${aws_security_group.lb.id}"]
     }
+ 
 
     egress {
         from_port   = 0
@@ -101,7 +88,7 @@ resource "aws_security_group" "default_ca" {
     }  
 }
 
-resource "aws_security_group" "web" {
+resource "aws_security_group" "lb" {
     name    = "web"
     vpc_id  = "${aws_vpc.main.id}"
     
@@ -112,6 +99,7 @@ resource "aws_security_group" "web" {
         cidr_blocks = ["0.0.0.0/0"]
     }
 
+   
 
     ingress {
         from_port   = 443
@@ -131,10 +119,11 @@ resource "aws_security_group" "web" {
 
 #ALB
 resource "aws_alb" "alb_default" {
-  name      = "alb-default"
-  internal  =  false
+  name                = "alb-default"
+  load_balancer_type  = "application"
+  internal            =  false
   subnets = ["${aws_subnet.public_a.id}", "${aws_subnet.public_b.id}"]
-  security_groups    = ["${aws_security_group.web.id}"]
+  security_groups    = ["${aws_security_group.lb.id}"]
  
 }
 
@@ -181,29 +170,33 @@ resource "aws_alb_listener" "alb_listener_80" {
 }
 
 #AMI/Instances
-resource "aws_ami_copy" "ami_ubuntu" {
+/* resource "aws_ami_copy" "ami_ubuntu" {
   name              = "ami_ubuntu"
   description       = "A copy of ami-026c8acd92718196b"
   source_ami_id     = "ami-026c8acd92718196b"
   source_ami_region = "us-east-1"
-}
+ }*/
 
 resource "aws_instance" "srv_nginx" {
-  ami                    = "${aws_ami_copy.ami_ubuntu.id}"
-  instance_type          = "t2.micro"
-  vpc_security_group_ids = ["${aws_security_group.web.id}"]
-  subnet_id              = "${aws_subnet.public_a.id}"
-  user_data              = "${file("install_nginx.sh")}"
+  #ami                    = "${aws_ami_copy.ami_ubuntu.id}"
+  ami                         = "ami-026c8acd92718196b"
+  instance_type               = "t2.micro"
+  vpc_security_group_ids      = ["${aws_security_group.instance_sg.id}"]
+  associate_public_ip_address = true
+  subnet_id                   = "${aws_subnet.public_a.id}"
+  user_data                   = "${file("install_nginx.sh")}"
   tags = {
       Name = "srv-nginx"
   }  
 }
 
 resource "aws_instance" "srv_tomcat" {
-  ami                    = "${aws_ami_copy.ami_ubuntu.id}"
-  instance_type          = "t2.micro"
-  subnet_id              = "${aws_subnet.public_b.id}"
-  vpc_security_group_ids = ["${aws_security_group.web.id}"]
+  #ami                    = "${aws_ami_copy.ami_ubuntu.id}"
+  ami                         = "ami-026c8acd92718196b"
+  instance_type               = "t2.micro"
+  subnet_id                   = "${aws_subnet.public_b.id}"
+  vpc_security_group_ids      = ["${aws_security_group.instance_sg.id}"]
+  associate_public_ip_address = true
   
   user_data              = "${file("install_apache.sh")}"
   tags = {
