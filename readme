@@ -1,2 +1,13 @@
 Feito com Terraform v0.11.14
 Challenge Aws tiendanube
+
+A pasta remote-state usei o conceito de módulo. Antes de levantar infra, entrar nesta pasta e executar:
+
+1 -cd challenge_aws/
+2 -terraform init
+3 -terraform apply
+
+posterior subir um nível
+
+1 -terraform init
+2 -terraform apply
