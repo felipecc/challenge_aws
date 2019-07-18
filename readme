@@ -1,7 +1,7 @@
 Feito com Terraform v0.11.14
 Challenge Aws tiendanube
 
-A pasta remote-state usei o conceito de módulo. Antes de levantar infra, entrar nesta pasta e executar:
+A pasta remote-state usei o conceito de módulo. Antes de levantar a infra, entrar nesta pasta e executar:
 
 1 -cd challenge_aws/
 2 -terraform init
