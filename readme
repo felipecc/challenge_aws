@@ -11,3 +11,17 @@ posterior subir um nível
 
 1 -terraform init
 2 -terraform apply
+
+Justificativa da pergunta no Bonus:
+
+
+Opções de Remote State
+
+Terraform Enterprise (Pago no Enterprise, faz mais do que guardar remote state)
+HashiCorp Consul (Pode ser criado uma infra local para suportar, faz mais do que guardar remote state)
+Amazon S3 (Barato e rápido)
+
+
+Porque S3 e DynamoDB
+
+S3 oferece 99,999999999% (11 9s) de durabilidade e ainda possuiu versionamento. O DynamoDB fornece um mecanismo de bloqueio ao estado remoto se um outro usuário estiver usando no momento.
